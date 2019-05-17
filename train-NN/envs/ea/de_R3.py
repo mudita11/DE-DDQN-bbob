@@ -258,8 +258,7 @@ class DEEnv(gym.Env):
         # self.fun_index = 0
         # BBOB
         suite_name = "bbob"
-        #suite_options = "dimensions: 2, 3, 5, 10, 20, 40"
-        suite_options = "dimensions: 20"
+        suite_options = "dimensions: 2, 3, 5, 10, 20, 40"
         self.suite = cocoex.Suite(suite_name, "", suite_options)
         # First "" takes following arguments: year, instances; Second "" takes following arguments: dimensions, dimension_indices, function_indices, instance_indices
         self.fun_index = 0

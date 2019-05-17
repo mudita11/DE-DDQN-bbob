@@ -215,8 +215,8 @@ dqn = DQNAgent(model=model, nb_actions=nb_actions, memory=memory, nb_steps_warmu
 # Neural Compilation
 dqn.compile(Adam(lr=1e-4), metrics=['mae'])
 
-callbacks = [ModelCheckpoint('dqn_ea_weights.h5f', 36)]
+callbacks = [ModelCheckpoint('dqn_ea_weights.h5f', 1620)]
 
 # Fit the model: training for nb_steps = number of generations
-dqn.fit(env, callbacks = callbacks, nb_steps=115e8, visualize=False, verbose=0, nb_max_episode_steps = None)
+dqn.fit(env, callbacks = callbacks, nb_steps=162e30, visualize=False, verbose=0, nb_max_episode_steps = None)
 
