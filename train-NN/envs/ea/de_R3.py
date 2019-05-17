@@ -283,6 +283,7 @@ class DEEnv(gym.Env):
         if self.F1[self.i] < self.copy_F[self.i]:
             # Fitness improvement wrt parent
             second_dim[1] = self.copy_F[self.i] - self.F1[self.i]
+            reward = (self.copy_F[self.i] - self.F1[self.i]) / (self.F1[self.i] - self.best_value + 0.001)
             # Fitness improvement wrt best parent
             if self.F1[self.i] < self.fmin:
                 second_dim[2] = self.fmin - self.F1[self.i]
@@ -291,11 +292,9 @@ class DEEnv(gym.Env):
                 second_dim[3] = self.best_so_far - self.F1[self.i]
                 #self.best_so_far = self.F1[self.i]
                 #self.best_so_far_position = self.population[self.i]
-                self.stagnation_count = 0;
-                reward = 10
+                self.stagnation_count = 0
             else:
                 self.stagnation_count += 1
-                reward = 1
             # Fitness improvement wrt median population fitness
             if self.F1[self.i] < self.fmedian:
                 second_dim[4] = self.fmedian - self.F1[self.i]

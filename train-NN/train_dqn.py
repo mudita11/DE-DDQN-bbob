@@ -8,7 +8,7 @@ import math
 import csv
 from numpy.linalg import inv
 
-from envs.ea import de_R1, de_R2, de_R3
+from envs.ea import de_R2
 
 import gym
 from gym import spaces
@@ -23,6 +23,10 @@ from rl.agents.dqn import DQNAgent
 
 from rl.memory import SequentialMemory
 from rl.util import *
+
+import argparse
+from inspect import currentframe, getframeinfo
+from pathlib import Path
 
 class ModelCheckpoint(Callback):
     def __init__(self, filepath, interval, verbose=1):
@@ -177,7 +181,7 @@ def get_path_to_script():
     return parent
 
 parent = get_path_to_script()
-training_set_path = os.path.join(parent, training_set)
+training_set_path = os.path.join(parent, "training_set")
 
 func_choice = []
 with open(training_set_path, 'r') as f:
