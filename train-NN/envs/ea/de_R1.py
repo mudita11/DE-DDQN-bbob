@@ -230,7 +230,7 @@ def update_window(window, window_size, second_dim, opu, i, copy_F, F1):
 mutations = [rand1, rand2, rand_to_best2, current_to_rand1]
 
 class DEEnv(gym.Env):
-    def __init__(self, func_choice):
+    def __init__(self, func_choice, optima_for_func_choice):
         # Content common to all episodes
         self.n_ops = 4
         self.action_space = spaces.Discrete(self.n_ops)

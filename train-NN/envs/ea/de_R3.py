@@ -230,7 +230,7 @@ def update_window(window, window_size, second_dim, opu, i, copy_F, F1):
 mutations = [rand1, rand2, rand_to_best2, current_to_rand1]
 
 class DEEnv(gym.Env):
-    def __init__(self, func_choice):
+    def __init__(self, func_choice, optima_for_func_choice):
         # Content common to all episodes
         self.n_ops = 4
         self.action_space = spaces.Discrete(self.n_ops)
@@ -241,6 +241,7 @@ class DEEnv(gym.Env):
         #self.budget = 1e2
         #self.NP = 100
         self.func_choice = func_choice
+        self.optima_for_func_choice = optima_for_func_choice
         self.FF = 0.5
         self.CR = 1.0
         self.NP = 200
@@ -280,10 +281,11 @@ class DEEnv(gym.Env):
         reward = 0
         second_dim = np.full(self.number_metric, np.nan)
         second_dim[0] = self.opu[self.i]
+        
         if self.F1[self.i] < self.copy_F[self.i]:
             # Fitness improvement wrt parent
             second_dim[1] = self.copy_F[self.i] - self.F1[self.i]
-            reward = (self.copy_F[self.i] - self.F1[self.i]) / (self.F1[self.i] - self.best_value + 0.001)
+            reward = (self.copy_F[self.i] - self.F1[self.i]) / (self.F1[self.i] - self.optima_for_func_choice[self.fun_index] + 0.001)
             # Fitness improvement wrt best parent
             if self.F1[self.i] < self.fmin:
                 second_dim[2] = self.fmin - self.F1[self.i]
@@ -422,7 +424,7 @@ class DEEnv(gym.Env):
         self.lbounds = self.fun.lower_bounds
         self.ubounds = self.fun.upper_bounds
         print("Function info: fun= {} with dim = {}" .format(self.fun, self.dim))
-        
+    
         self.generation = 0
         range = self.lbounds - self.ubounds
         center = self.lbounds + range / 2
