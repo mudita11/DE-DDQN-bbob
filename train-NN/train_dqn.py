@@ -171,7 +171,20 @@ class EpsGreedyQPolicy(PolicyDebug):
 
 ENV_NAME = 'ea'
 
-env = de_R2.DEEnv() # Can be changed to create an object of de-R1 or de-R3 for reward defintions R1 and R3 resp.
+def get_path_to_script():
+    filename = getframeinfo(currentframe()).filename
+    parent = Path(filename).resolve().parent
+    return parent
+
+parent = get_path_to_script()
+training_set_path = os.path.join(parent, training_set)
+
+func_choice = []
+with open(training_set_path, 'r') as f:
+    for item in f:
+        func_choice.append(float(item.rstrip()))
+
+env = de_R2.DEEnv(func_choice) # Can be changed to create an object of de-R1 or de-R3 for reward defintions R1 and R3 resp.
 
 nb_actions = env.action_space.n
 
@@ -198,7 +211,7 @@ dqn = DQNAgent(model=model, nb_actions=nb_actions, memory=memory, nb_steps_warmu
 # Neural Compilation
 dqn.compile(Adam(lr=1e-4), metrics=['mae'])
 
-callbacks = [ModelCheckpoint('dqn_ea_weights.h5f', 32)]
+callbacks = [ModelCheckpoint('dqn_ea_weights.h5f', 36)]
 
 # Fit the model: training for nb_steps = number of generations
 dqn.fit(env, callbacks = callbacks, nb_steps=115e8, visualize=False, verbose=0, nb_max_episode_steps = None)
