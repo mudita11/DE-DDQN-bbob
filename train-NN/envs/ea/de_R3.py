@@ -85,16 +85,6 @@ def Success_Rate1(popsize, n_ops, gen_window, Off_met, max_gen):
         n_applications = total_success + total_unsuccess # Sum works fine
         n_applications[n_applications == 0] = 1
         state_value += total_success / n_applications
-    #for i in range(n_ops):
-        #appl = 0; t_s = 0
-        #for j in range(len(gen_window)-1, len(gen_window)-max_gen-1, -1):
-            #total_success = 0; total_unsuccess = 0
-            #if np.any(gen_window[j, :, 0] == i):
-                #total_success, total_unsuccess = count_success(popsize, gen_window, i, j, Off_met)
-                #t_s += total_success
-                #appl += total_success + total_unsuccess
-        #if appl != 0:
-            #state_value[i] = t_s / appl
     return state_value
 
                                                         ##########################Weighted offspring based################################
@@ -112,28 +102,16 @@ def Weighted_Offspring1(popsize, n_ops, gen_window, Off_met, max_gen):
         n_applications[n_applications == 0] = 1
         state_value += function_at_generation(n_ops, gen_window, j, Off_met, np.sum) / n_applications
     state_value = state_value / np.sum(state_value)
-    #for i in range(n_ops):
-        #appl = 0
-        #for j in range(len(gen_window)-1, len(gen_window)-max_gen-1, -1):
-            #total_success = 0; total_unsuccess = 0
-            #if np.any(gen_window[j, :, 0] == i):
-                #total_success, total_unsuccess = count_success(popsize, gen_window, i, j, Off_met)
-                #state_value[i] += np.sum(gen_window[j, np.where((gen_window[j, :, 0] == i) & (gen_window[j, :, Off_met] != -1)), Off_met])
-                #appl += total_success + total_unsuccess
-        #if appl != 0:
-            #state_value[i] = state_value[i] / appl
-    #if np.sum(state_value) != 0:
-        #state_value = state_value / np.sum(state_value)
     return state_value
 
 
 # Applicable for fix window size
 def Weighted_Offspring2(popsize, n_ops, window, Off_met, max_gen):
     state_value = np.zeros(n_ops)
-    window = window[window[:, 0] != -1][:, :]
+    window = window[~np.isnan(window[:, 0])][:, :]
     for i in range(n_ops):
-        if np.sum((window[:, 0] == i) & (window[:, Off_met] != -1)) > 0:
-            state_value[i] = np.sum(window[np.where((window[:, 0] == i) & (window[:, Off_met] != -1)), Off_met]) / np.sum((window[:, 0] == i) & (window[:, Off_met] != -1));
+        if np.any((window[:, 0] == i) & (~np.isnan(window[:, Off_met]))):
+            state_value[i] = np.sum(window[np.where((window[:, 0] == i) & (~np.isnan(window[:, Off_met]))), Off_met]) / np.sum((window[:, 0] == i) & (~np.isnan(window[:, Off_met])))
     if np.sum(state_value) != 0:
         state_value = state_value / np.sum(state_value)
     return state_value
@@ -142,7 +120,7 @@ def Weighted_Offspring2(popsize, n_ops, window, Off_met, max_gen):
 
 # Applicable for last two generations
 def Best_Offspring1(popsize, n_ops, gen_window, Off_met, max_gen):
-    # gen_window is of type list here.
+    # gen_window is of type list at this point.
     #print("Best offspring1")
     gen_window = np.array(gen_window)
     gen_window_len = len(gen_window)
@@ -159,30 +137,6 @@ def Best_Offspring1(popsize, n_ops, gen_window, Off_met, max_gen):
     n_applications[n_applications == 0] = 1
     best_t_1[best_t_1 == 0] = 1
     state_value = state_value / (best_t_1 * np.fabs(n_applications))
-    #state_value = np.zeros(n_ops)
-    #gen_window = np.array(gen_window)
-    #best_t = np.zeros(n_ops); best_t_1 = np.zeros(n_ops)
-    #for i in range(n_ops):
-        # for last 2 generations
-        #n_applications = np.zeros(2)
-        # Calculating best in current generation
-        #if np.any((gen_window[len(gen_window)-1, :, 0] == i) & (gen_window[len(gen_window)-1, :, Off_met] != -1)):
-            #total_success, total_unsuccess = count_success(popsize, gen_window, i, len(gen_window)-1, Off_met)
-            #n_applications[0] = total_success + total_unsuccess
-            #best_t[i] = np.max(gen_window[len(gen_window)-1, np.where((gen_window[len(gen_window)-1, :, 0] == i) & (gen_window[len(gen_window)-1, :, Off_met] != -1)), Off_met])
-        # Calculating best in last generation
-        #if len(gen_window)>=2 and np.any((gen_window[len(gen_window)-2,:,0] == i) & (gen_window[len(gen_window)-2, :, Off_met] != -1)):
-            #total_success, total_unsuccess = count_success(popsize, gen_window, i, len(gen_window)-2, Off_met)
-            #n_applications[1] = total_success + total_unsuccess
-            #best_t_1[i] = np.max(gen_window[len(gen_window)-2, np.where((gen_window[len(gen_window)-2, :, 0] == i) & (gen_window[len(gen_window)-2, :, Off_met] != -1)), Off_met])
-        #if best_t_1[i] != 0 and np.fabs(n_applications[0] - n_applications[1]) != 0:
-            #state_value[i] = np.fabs(best_t[i] - best_t_1[i]) / ((best_t_1[i]) * (np.fabs(n_applications[0] - n_applications[1])))
-        #elif best_t_1[i] != 0 and np.fabs(n_applications[0] - n_applications[1]) == 0:
-            #state_value[i] = np.fabs(best_t[i] - best_t_1[i]) / (best_t_1[i])
-        #elif best_t_1[i] == 0 and np.fabs(n_applications[0] - n_applications[1]) != 0:
-            #state_value[i] = np.fabs(best_t[i] - best_t_1[i]) / (np.fabs(n_applications[0] - n_applications[1]))
-        #else:
-            #state_value[i] = np.fabs(best_t[i] - best_t_1[i])
     if np.sum(state_value) != 0:
         state_value = state_value / np.sum(state_value)
     return state_value
@@ -196,13 +150,6 @@ def Best_Offspring2(popsize, n_ops, gen_window, Off_met, max_gen):
     max_gen = min_gen(max_gen, gen_window)
     for j in range(gen_window_len - max_gen, gen_window_len):
         state_value += function_at_generation(n_ops, gen_window, j, Off_met, np.max)
-    
-    #for i in range(n_ops):
-        #gen_best = []
-        #for j in range(len(gen_window)-1, len(gen_window)-max_gen-1, -1):
-            #if np.any((gen_window[j,:,0] == i) & (gen_window[j, :, Off_met] != -1)):
-                #gen_best.append(np.max(np.hstack(gen_window[j, np.where((gen_window[j,:,0] == i) & (gen_window[j, :, Off_met] != -1)), Off_met])))
-                #state_value[i] += np.sum(gen_best)
     if np.sum(state_value) != 0:
         state_value = state_value / np.sum(state_value)
     return state_value
@@ -235,11 +182,6 @@ class DEEnv(gym.Env):
         self.n_ops = 4
         self.action_space = spaces.Discrete(self.n_ops)
         self.observation_space = spaces.Box(-np.inf, np.inf, shape=(99,), dtype = np.float32)
-        #self.max_gen = 10
-        #self.window_size = 50
-        #self.FF = 0.5; self.CR = 1.0
-        #self.budget = 1e2
-        #self.NP = 100
         self.func_choice = func_choice
         self.optima_for_func_choice = optima_for_func_choice
         self.FF = 0.5
@@ -248,11 +190,6 @@ class DEEnv(gym.Env):
         self.window_size = 50
         self.number_metric = 5
     
-        # CEC2005
-        # self.func_choice = [unimodal.F1, unimodal.F2, unimodal.F5, basic_multimodal.F6, basic_multimodal.F8, basic_multimodal.F10, basic_multimodal.F11, basic_multimodal.F12, expanded_multimodal.F13, expanded_multimodal.F14, f15.F15, f19.F19, f20.F20, f21.F21, f22.F22, f24.F24]
-        # self.d_choice = [10, 30]
-        # self.func_select = [(func, d) for func in self.func_choice for d in self.d_choice]
-        # self.fun_index = 0
         # BBOB
         suite_name = "bbob"
         suite_options = "dimensions: 2, 3, 5, 10, 20, 40"
@@ -288,8 +225,6 @@ class DEEnv(gym.Env):
             # Fitness improvement wrt bsf
             if self.F1[self.i] < self.best_so_far:
                 second_dim[3] = self.best_so_far - self.F1[self.i]
-                #self.best_so_far = self.F1[self.i]
-                #self.best_so_far_position = self.population[self.i]
                 self.stagnation_count = 0
             else:
                 self.stagnation_count += 1
@@ -299,13 +234,6 @@ class DEEnv(gym.Env):
             
             self.window = update_window(self.window, self.window_size, second_dim, self.opu, self.i, self.copy_F, self.F1)
             
-            #self.best = np.argmin(self.copy_F)
-            #self.best_so_far = self.copy_F(self.best)
-            #self.best_so_far_position = self.population[self.best]
-            #self.worst_so_far = np.max(self.copy_F)
-            
-            #if self.worst_so_far < self.F1[self.i]:
-                #self.worst_so_far = self.F1[self.i]
             self.F[self.i] = self.F1[self.i]
             self.X[self.i, :] = self.u[self.i, :]
         
@@ -390,7 +318,6 @@ class DEEnv(gym.Env):
         ob[87:91] = Weighted_Offspring2(self.NP, self.n_ops, self.window, 2, self.max_gen)
         ob[91:95] = Weighted_Offspring2(self.NP, self.n_ops, self.window, 3, self.max_gen)
         ob[95:99] = Weighted_Offspring2(self.NP, self.n_ops, self.window, 4, self.max_gen)
-        #assert np.all(ob >= 0.0) and np.all(ob <= 1.0)
 
         if self.budget <= 0:
             print("time taken for one episode:", time.time() - self.a)
@@ -402,17 +329,6 @@ class DEEnv(gym.Env):
 
     def reset(self):
         # Content common to one episode and may or may not be same for others.
-        # CEC2005
-        # self.dim = self.func_select[self.fun_index][1]
-        # self.fun = self.func_select[self.fun_index][0](self.dim)
-        # self.lbounds = self.fun.min_bounds; self.lbounds = np.array(self.lbounds); print(self.lbounds)
-        # self.ubounds = self.fun.max_bounds; self.ubounds = np.array(self.ubounds); print(self.ubounds)
-        # opti = self.fun.get_optimal_solutions()
-        # for o in opti:
-            # sol = np.copy(o.phenome)
-        # self.best_value = self.fun.objective_function(sol)
-        # print("Function info: fun= ", self.func_select[self.fun_index], " with dim = ", self.dim, " with best value= ", self.best_value)
-        
         self.a = time.time()
         # BBOB function selection
         self.fun = self.suite[int(self.func_choice[self.fun_index])]
@@ -430,12 +346,9 @@ class DEEnv(gym.Env):
         x0 = center + 0.8 * range * (np.random.rand(self.dim)-0.5)
         self.X = self.lbounds + ((self.ubounds - self.lbounds) * np.random.rand(self.NP, self.dim))
         self.X[0, :] = x0
-        #self.F = [self.fun(x) for x in self.X]
         self.F = np.apply_along_axis(self.fun, 1, self.X)
-        #self.u = [[0 for z in range(int(self.dim))] for k in range(int(self.NP))]
         self.u = np.full((self.NP, self.dim), 0.0)
         self.F1 = np.apply_along_axis(self.fun, 1, self.u)
-        #self.F1 = np.zeros(int(self.NP));
         self.budget -= self.NP
         
         # X and F are updated after each individual evaluation; population, used to pick random solutions, and copy_F are updated after a population is evaluated.
@@ -457,7 +370,6 @@ class DEEnv(gym.Env):
         self.i = 0;
         self.r = select_samples(self.NP, self.i, 5)
         
-        #self.window = [[np.inf for j in range(self.number_metric)] for i in range(self.window_size)]; self.window = np.array(self.window);
         self.window = np.full((self.window_size, self.number_metric), np.inf); self.window[:, 0].fill(-1)
         self.gen_window = []
         self.third_dim = []
