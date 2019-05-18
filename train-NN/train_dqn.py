@@ -182,20 +182,20 @@ def get_path_to_script():
 
 parent = get_path_to_script()
 training_set_path = os.path.join(parent, "training_set")
-optima_for_training_path = os.path.join(parent, "optima_for_training")
+#optima_for_training_path = os.path.join(parent, "optima_for_training")
 
 func_choice = []
 with open(training_set_path, 'r') as f:
     for item in f:
         func_choice.append(float(item.rstrip()))
 
-optima_for_func_choice = []
-with open(optima_for_training_path, 'r') as f1:
-    for item in f1:
-        optima_for_func_choice.append(float(item.rstrip()))
+#optima_for_func_choice = []
+#with open(optima_for_training_path, 'r') as f1:
+    #for item in f1:
+        #optima_for_func_choice.append(float(item.rstrip()))
 
 
-env = de_R3.DEEnv(func_choice, optima_for_func_choice) # Can be changed to create an object of de-R1 or de-R3 for reward defintions R1 and R3 resp.
+env = de_R2.DEEnv(func_choice) # Can be changed to create an object of de-R1 or de-R3 for reward defintions R1 and R3 resp.
 
 nb_actions = env.action_space.n
 
