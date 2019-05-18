@@ -85,6 +85,7 @@ def Success_Rate1(popsize, n_ops, gen_window, Off_met, max_gen):
         n_applications = total_success + total_unsuccess # Sum works fine
         n_applications[n_applications == 0] = 1
         state_value += total_success / n_applications
+    #print("state", state_value)
     return state_value
 
                                                         ##########################Weighted offspring based################################
@@ -101,6 +102,7 @@ def Weighted_Offspring1(popsize, n_ops, gen_window, Off_met, max_gen):
         n_applications = total_success + total_unsuccess
         n_applications[n_applications == 0] = 1
         state_value += function_at_generation(n_ops, gen_window, j, Off_met, np.sum) / n_applications
+    #print("state", state_value)
     state_value = state_value / np.sum(state_value)
     return state_value
 
@@ -109,10 +111,11 @@ def Weighted_Offspring1(popsize, n_ops, gen_window, Off_met, max_gen):
 def Weighted_Offspring2(popsize, n_ops, window, Off_met, max_gen):
     #print("Weighted off 2")
     state_value = np.zeros(n_ops)
-    window = window[window[:, 0] != -1][:, :]
+    window = window[~np.isnan(window[:, 0])][:, :]
     for i in range(n_ops):
-        if np.sum((window[:, 0] == i) & (window[:, Off_met] != -1)) > 0:
-            state_value[i] = np.sum(window[np.where((window[:, 0] == i) & (window[:, Off_met] != -1)), Off_met]) / np.sum((window[:, 0] == i) & (window[:, Off_met] != -1));
+        if np.any((window[:, 0] == i) & (~np.isnan(window[:, Off_met]))):
+            state_value[i] = np.sum(window[np.where((window[:, 0] == i) & (~np.isnan(window[:, Off_met]))), Off_met]) / np.sum((window[:, 0] == i) & (~np.isnan(window[:, Off_met])))
+    #print("state", state_value)
     if np.sum(state_value) != 0:
         state_value = state_value / np.sum(state_value)
     return state_value
@@ -138,6 +141,7 @@ def Best_Offspring1(popsize, n_ops, gen_window, Off_met, max_gen):
     n_applications[n_applications == 0] = 1
     best_t_1[best_t_1 == 0] = 1
     state_value = state_value / (best_t_1 * np.fabs(n_applications))
+    #print("state", state_value)
     if np.sum(state_value) != 0:
         state_value = state_value / np.sum(state_value)
     return state_value
@@ -152,6 +156,7 @@ def Best_Offspring2(popsize, n_ops, gen_window, Off_met, max_gen):
     max_gen = min_gen(max_gen, gen_window)
     for j in range(gen_window_len - max_gen, gen_window_len):
         state_value += function_at_generation(n_ops, gen_window, j, Off_met, np.max)
+    #print("state", state_value)
     if np.sum(state_value) != 0:
         state_value = state_value / np.sum(state_value)
     return state_value
@@ -188,7 +193,7 @@ class DEEnv(gym.Env):
         self.FF = 0.5
         self.CR = 1.0
         self.max_gen = 10
-        self.window_size = 50
+        self.window_size = 10
         self.number_metric = 5
 
         # BBOB
@@ -211,7 +216,6 @@ class DEEnv(gym.Env):
         self.crossovers[self.fill_points[self.i]] = True
         self.u[self.i, :] = np.where(self.crossovers, bprime, self.X[self.i, :])
         self.F1[self.i] = self.fun(self.u[self.i])
-    
         reward = 0
         second_dim = np.full(self.number_metric, np.nan)
         second_dim[0] = self.opu[self.i]
