@@ -101,7 +101,8 @@ def Weighted_Offspring1(popsize, n_ops, gen_window, Off_met, max_gen):
         n_applications = total_success + total_unsuccess
         n_applications[n_applications == 0] = 1
         state_value += function_at_generation(n_ops, gen_window, j, Off_met, np.sum) / n_applications
-    state_value = state_value / np.sum(state_value)
+    if np.sum(state_value) != 0:
+        state_value = state_value / np.sum(state_value)
     return state_value
 
 

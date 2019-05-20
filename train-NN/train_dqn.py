@@ -181,7 +181,7 @@ def get_path_to_script():
     return parent
 
 parent = get_path_to_script()
-training_set_path = os.path.join(parent, "training_set")
+training_set_path = os.path.join(parent, "training_set.txt")
 #optima_for_training_path = os.path.join(parent, "optima_for_training")
 
 func_choice = []
@@ -195,7 +195,7 @@ with open(training_set_path, 'r') as f:
         #optima_for_func_choice.append(float(item.rstrip()))
 
 
-env = de_R2.DEEnv(func_choice) # Can be changed to create an object of de-R1 or de-R3 for reward defintions R1 and R3 resp.
+env = de_R1.DEEnv(func_choice) # Can be changed to create an object of de-R1 or de-R3 for reward defintions R1 and R3 resp.
 
 nb_actions = env.action_space.n
 
