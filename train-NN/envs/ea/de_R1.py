@@ -91,7 +91,7 @@ def Success_Rate1(popsize, n_ops, gen_window, Off_met, max_gen):
 
 # Applicable for fix number of generations
 def Weighted_Offspring1(popsize, n_ops, gen_window, Off_met, max_gen):
-    #print("Weighted offspring1", gen_window)
+    #print("Weighted offspring1")
     gen_window = np.array(gen_window)
     gen_window_len = len(gen_window)
     max_gen = min_gen(max_gen, gen_window)
@@ -108,6 +108,7 @@ def Weighted_Offspring1(popsize, n_ops, gen_window, Off_met, max_gen):
 
 # Applicable for fix window size
 def Weighted_Offspring2(popsize, n_ops, window, Off_met, max_gen):
+    #print("weighted offspring 2")
     state_value = np.zeros(n_ops)
     window = window[~np.isnan(window[:, 0])][:, :]
     for i in range(n_ops):
@@ -145,6 +146,7 @@ def Best_Offspring1(popsize, n_ops, gen_window, Off_met, max_gen):
 
 # Applicable for fix number of generations
 def Best_Offspring2(popsize, n_ops, gen_window, Off_met, max_gen):
+    #print("Best_Offspring2")
     state_value = np.zeros(n_ops)
     gen_window = np.array(gen_window)
     gen_window_len = len(gen_window)
@@ -192,7 +194,8 @@ class DEEnv(gym.Env):
 
         # BBOB
         suite_name = "bbob"
-        suite_options = "dimensions: 2, 3, 5, 10, 20, 40"
+        #suite_options = "dimensions: 2, 3, 5, 10, 20, 40"
+        suite_options = "dimensions: 5"
         self.suite = cocoex.Suite(suite_name, "", suite_options)
         # First "" takes following arguments: year, instances; Second "" takes following arguments: dimensions, dimension_indices, function_indices, instance_indices
         self.fun_index = 0
@@ -303,7 +306,7 @@ class DEEnv(gym.Env):
         ob[1] = normalise(self.pop_average, self.best_so_far, self.worst_so_far)
         ob[2] = self.pop_std / self.max_std
         ob[3] = self.budget / self.max_budget
-        ob[4] = self.dim / 50
+        ob[4] = self.dim / 40
         ob[5] = self.stagnation_count / self.max_budget
 
         # Random sample based observations
@@ -337,7 +340,7 @@ class DEEnv(gym.Env):
         self.ubounds = self.fun.upper_bounds
         print("Function info: fun= {} with dim = {}" .format(self.fun, self.dim))
         
-        self.budget = 1e5 * self.dim
+        self.budget = 1e3 * self.dim
         self.max_budget = self.budget
         self.NP = 10 * self.dim
         self.generation = 0

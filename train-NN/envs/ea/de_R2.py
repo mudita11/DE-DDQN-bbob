@@ -103,7 +103,8 @@ def Weighted_Offspring1(popsize, n_ops, gen_window, Off_met, max_gen):
         n_applications[n_applications == 0] = 1
         state_value += function_at_generation(n_ops, gen_window, j, Off_met, np.sum) / n_applications
     #print("state", state_value)
-    state_value = state_value / np.sum(state_value)
+    if np.sum(state_value) != 0:
+        state_value = state_value / np.sum(state_value)
     return state_value
 
 
@@ -198,7 +199,8 @@ class DEEnv(gym.Env):
 
         # BBOB
         suite_name = "bbob"
-        suite_options = "dimensions: 2, 3, 5, 10, 20, 40"
+        #suite_options = "dimensions: 2, 3, 5, 10, 20, 40"
+        suite_options = "dimensions: 5"
         self.suite = cocoex.Suite(suite_name, "", suite_options)
         # First "" takes following arguments: year, instances; Second "" takes following arguments: dimensions, dimension_indices, function_indices, instance_indices
         self.fun_index = 0
@@ -309,7 +311,7 @@ class DEEnv(gym.Env):
         ob[1] = normalise(self.pop_average, self.best_so_far, self.worst_so_far)
         ob[2] = self.pop_std / self.max_std
         ob[3] = self.budget / self.max_budget
-        ob[4] = self.dim / 50
+        ob[4] = self.dim / 40
         ob[5] = self.stagnation_count / self.max_budget
 
         # Random sample based observations
@@ -344,7 +346,7 @@ class DEEnv(gym.Env):
         self.ubounds = self.fun.upper_bounds
         print("Function info: fun= {} with dim = {}" .format(self.fun, self.dim))
         
-        self.budget = 1e5 * self.dim
+        self.budget = 1e3 * self.dim
         self.max_budget = self.budget
         self.NP = 10 * self.dim
         self.generation = 0
