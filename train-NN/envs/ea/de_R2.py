@@ -219,7 +219,7 @@ class DEEnv(gym.Env):
         # BBOB
         suite_name = "bbob"
         #suite_options = "dimensions: 2, 3, 5, 10, 20, 40"
-        suite_options = "dimensions: 5"
+        suite_options = "dimensions: 20"
         self.suite = cocoex.Suite(suite_name, "", suite_options)
         # First "" takes following arguments: year, instances; Second "" takes following arguments: dimensions, dimension_indices, function_indices, instance_indices
         self.fun_index = 0
@@ -382,7 +382,7 @@ class DEEnv(gym.Env):
         self.ubounds = self.fun.upper_bounds
         print("Function info: fun= {} with dim = {}" .format(self.fun, self.dim))
         
-        self.budget = 1e4 * self.dim
+        self.budget = 1e3 * self.dim
         self.max_budget = self.budget
         self.NP = 10 * self.dim
         self.generation = 0
