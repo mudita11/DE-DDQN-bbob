@@ -317,7 +317,7 @@ class DEEnv(gym.Env):
             union = self.archive[~np.isnan(self.archive[:, 0])]
             if len(union) > self.NP:
                 union = union[np.random.randint(len(union), size = self.NP), :]
-            
+        
             # Best index in current population
             self.best = np.argmin(self.copy_F)
             
@@ -419,7 +419,7 @@ class DEEnv(gym.Env):
         self.third_dim = []
         self.opu = np.ones(self.NP) * 4
         
-        self.archive = np.full((int(self.budget+self.NP), self.dim), np.nan)
+        self.archive = np.full((int(self.max_budget+self.NP), self.dim), np.nan)
         self.archive[:self.NP] = self.X
     
         self.index_poor_cand = []
