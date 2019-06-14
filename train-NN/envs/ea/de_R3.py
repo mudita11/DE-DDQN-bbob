@@ -15,21 +15,45 @@ from optproblems.cec2005 import *
 import cocoex
 import os
 
-def rand1(population, samples, scale, best, i): # DE/rand/1
+def rand1(population, samples, scale, best, i, union, copy_F, NP): # DE/rand/1
     r0, r1, r2 = samples[:3]
     return (population[r0] + scale * (population[r1] - population[r2]))
 
-def rand2(population, samples, scale, best, i): # DE/rand/2
+def rand2(population, samples, scale, best, i, union, copy_F, NP): # DE/rand/2
     r0, r1, r2, r3, r4 = samples[:5]
     return (population[r0] + scale * (population[r1] - population[r2] + population[r3] - population[r4]))
 
-def rand_to_best2(population, samples, scale, best, i): # DE/rand-to-best/2
+def rand_to_best2(population, samples, scale, best, i, union, copy_F, NP): # DE/rand-to-best/2
     r0, r1, r2, r3, r4 = samples[:5]
     return (population[r0] + scale * (population[best] - population[r0] + population[r1] - population[r2] + population[r3] - population[r4]))
 
-def current_to_rand1(population, samples, scale, best, i): # DE/current-to-rand/1
+def current_to_rand1(population, samples, scale, best, i, union, copy_F, NP): # DE/current-to-rand/1
     r0, r1, r2 = samples[:3]
     return (population[i] + scale * (population[r0] - population[i] + population[r1] - population[r2]))
+
+def current_to_pbest(population, samples, scale, best, i, union, copy_F, NP):
+    '''current to pbest (JADE-without archive)'''
+    r0, r1 = samples[:2]
+    top_best_index = [idx for (idx,v) in sorted(enumerate(copy_F), key = lambda x: x[1])[:int(0.05 * NP)]]
+    return (population[i] + scale * (population[np.random.choice(top_best_index)] - population[i] + population[r0] - population[r1]))
+    
+def current_to_pbest_archived(population, samples, scale, best, i, union, copy_F, NP):
+    '''current to pbest (JADE-with archive)'''
+    r0 = samples[:1]
+    top_best_index = [idx for (idx,v) in sorted(enumerate(copy_F), key = lambda x: x[1])[:int(0.05 * NP)]]
+    return (population[i] + scale * (population[np.random.choice(top_best_index)] - population[i] + population[r0] - union[np.random.randint(NP)]))
+    
+def best_1(population, samples, scale, best, i, union, copy_F, NP):
+    r0, r1 = samples[:2]
+    return (population[best] + scale * (population[r0] - population[r1]))
+    
+def current_to_best_1(population, samples, scale, best, i, union, copy_F, NP):
+    r0, r1 = samples[:2]
+    return (population[i] +scale * (population[best] - population[i] + population[r0] - population[r1]))
+    
+def best_2(population, samples, scale, best, i, union, copy_F, NP):
+    r0, r1, r2, r3 = samples[:4]
+    return (population[best] + scale * (population[r0] - population[r1] + population[r2] - population[r3]))
 
 def select_samples(popsize, candidate, number_samples):
     """
@@ -91,7 +115,7 @@ def Success_Rate1(popsize, n_ops, gen_window, Off_met, max_gen):
 
 # Applicable for fix number of generations
 def Weighted_Offspring1(popsize, n_ops, gen_window, Off_met, max_gen):
-    #print("Weighted offspring1", gen_window)
+    #print("Weighted offspring1")
     gen_window = np.array(gen_window)
     gen_window_len = len(gen_window)
     max_gen = min_gen(max_gen, gen_window)
@@ -101,12 +125,14 @@ def Weighted_Offspring1(popsize, n_ops, gen_window, Off_met, max_gen):
         n_applications = total_success + total_unsuccess
         n_applications[n_applications == 0] = 1
         state_value += function_at_generation(n_ops, gen_window, j, Off_met, np.sum) / n_applications
-    state_value = state_value / np.sum(state_value)
+    if np.sum(state_value) != 0:
+        state_value = state_value / np.sum(state_value)
     return state_value
 
 
 # Applicable for fix window size
 def Weighted_Offspring2(popsize, n_ops, window, Off_met, max_gen):
+    #print("weighted offspring 2")
     state_value = np.zeros(n_ops)
     window = window[~np.isnan(window[:, 0])][:, :]
     for i in range(n_ops):
@@ -144,6 +170,7 @@ def Best_Offspring1(popsize, n_ops, gen_window, Off_met, max_gen):
 
 # Applicable for fix number of generations
 def Best_Offspring2(popsize, n_ops, gen_window, Off_met, max_gen):
+    #print("Best_Offspring2")
     state_value = np.zeros(n_ops)
     gen_window = np.array(gen_window)
     gen_window_len = len(gen_window)
@@ -174,36 +201,38 @@ def update_window(window, window_size, second_dim, opu, i, copy_F, F1):
 
                                                 ##########################class DEEnv###########################################
 
-mutations = [rand1, rand2, rand_to_best2, current_to_rand1]
+mutations = [rand1, rand2, rand_to_best2, current_to_rand1, current_to_pbest, current_to_pbest_archived, best_1, current_to_best_1, best_2 ]
 
 class DEEnv(gym.Env):
     def __init__(self, func_choice):
         # Content common to all episodes
-        self.n_ops = 4
+        self.n_ops = len(mutations)
         self.action_space = spaces.Discrete(self.n_ops)
-        self.observation_space = spaces.Box(-np.inf, np.inf, shape=(99,), dtype = np.float32)
+        self.observation_space = spaces.Box(-np.inf, np.inf, shape=(199,), dtype = np.float32)
         self.func_choice = func_choice
-        self.optima_for_func_choice = optima_for_func_choice
         self.FF = 0.5
         self.CR = 1.0
         self.max_gen = 10
         self.window_size = 50
         self.number_metric = 5
-    
+
         # BBOB
         suite_name = "bbob"
-        suite_options = "dimensions: 2, 3, 5, 10, 20, 40"
+        #suite_options = "dimensions: 2, 3, 5, 10, 20, 40"
+        suite_options = "dimensions: 5"
         self.suite = cocoex.Suite(suite_name, "", suite_options)
         # First "" takes following arguments: year, instances; Second "" takes following arguments: dimensions, dimension_indices, function_indices, instance_indices
         self.fun_index = 0
     
     def step(self, action):
-        assert action >=0 and action < 4
+        assert action >=0 and action < 9
         self.opu[self.i] = action
         mutate = mutations[action]
         
+        union = self.archive[~np.isnan(self.archive[:, 0])]
+        
         # Evolution of parent i
-        bprime = mutate(self.population, self.r, self.FF, self.best, self.i)
+        bprime = mutate(self.population, self.r, self.FF, self.best, self.i, union, self.copy_F, self.NP)
         bprime[bprime < self.lbounds[0]] = self.lbounds[0]
         bprime[bprime > self.ubounds[0]] = self.ubounds[0]
         self.crossovers = (np.random.rand(self.dim) < self.CR)
@@ -214,7 +243,6 @@ class DEEnv(gym.Env):
         reward = 0
         second_dim = np.full(self.number_metric, np.nan)
         second_dim[0] = self.opu[self.i]
-        
         if self.F1[self.i] < self.copy_F[self.i]:
             # Fitness improvement wrt parent
             second_dim[1] = self.copy_F[self.i] - self.F1[self.i]
@@ -236,7 +264,9 @@ class DEEnv(gym.Env):
             
             self.F[self.i] = self.F1[self.i]
             self.X[self.i, :] = self.u[self.i, :]
-        
+            
+            self.index_poor_cand.append(self.i)
+    
         self.third_dim.append(second_dim)
         
         self.max_std = np.std((np.repeat(self.best_so_far, self.NP/2), np.repeat(self.worst_so_far, self.NP/2)))
@@ -245,28 +275,35 @@ class DEEnv(gym.Env):
         self.i = self.i+1
         
         if self.i >= self.NP:
-            self.gen_window.append(self.third_dim);
+            # Maintainng archive (a list)
+            start = np.argwhere(np.isnan(self.archive[:,0]))[0][0]
+            poor_candidates = self.population[self.index_poor_cand]
+            end = start+len(poor_candidates)
+            self.archive[start:end] = poor_candidates
+            self.index_poor_cand = []
+            
+            self.gen_window.append(self.third_dim)
             # Generation based statistics
-            self.copy_ob = np.zeros(64)
-            self.copy_ob[0:4] = Success_Rate1(self.NP, self.n_ops, self.gen_window, 1, self.max_gen)
-            self.copy_ob[4:8] = Success_Rate1(self.NP, self.n_ops, self.gen_window, 2, self.max_gen)
-            self.copy_ob[8:12] = Success_Rate1(self.NP, self.n_ops, self.gen_window, 3, self.max_gen)
-            self.copy_ob[12:16] = Success_Rate1(self.NP, self.n_ops, self.gen_window, 4, self.max_gen)
+            self.copy_ob = np.zeros(144)
+            self.copy_ob[0:9] = Success_Rate1(self.NP, self.n_ops, self.gen_window, 1, self.max_gen)
+            self.copy_ob[9:18] = Success_Rate1(self.NP, self.n_ops, self.gen_window, 2, self.max_gen)
+            self.copy_ob[18:27] = Success_Rate1(self.NP, self.n_ops, self.gen_window, 3, self.max_gen)
+            self.copy_ob[27:36] = Success_Rate1(self.NP, self.n_ops, self.gen_window, 4, self.max_gen)
             
-            self.copy_ob[16:20] = Weighted_Offspring1(self.NP, self.n_ops, self.gen_window, 1, self.max_gen)
-            self.copy_ob[20:24] = Weighted_Offspring1(self.NP, self.n_ops, self.gen_window, 2, self.max_gen)
-            self.copy_ob[24:28] = Weighted_Offspring1(self.NP, self.n_ops, self.gen_window, 3, self.max_gen)
-            self.copy_ob[28:32] = Weighted_Offspring1(self.NP, self.n_ops, self.gen_window, 4, self.max_gen)
+            self.copy_ob[36:45] = Weighted_Offspring1(self.NP, self.n_ops, self.gen_window, 1, self.max_gen)
+            self.copy_ob[45:54] = Weighted_Offspring1(self.NP, self.n_ops, self.gen_window, 2, self.max_gen)
+            self.copy_ob[54:63] = Weighted_Offspring1(self.NP, self.n_ops, self.gen_window, 3, self.max_gen)
+            self.copy_ob[63:72] = Weighted_Offspring1(self.NP, self.n_ops, self.gen_window, 4, self.max_gen)
             
-            self.copy_ob[32:36] = Best_Offspring1(self.NP, self.n_ops, self.gen_window, 1, self.max_gen)
-            self.copy_ob[36:40] = Best_Offspring1(self.NP, self.n_ops, self.gen_window, 2, self.max_gen)
-            self.copy_ob[40:44] = Best_Offspring1(self.NP, self.n_ops, self.gen_window, 3, self.max_gen)
-            self.copy_ob[44:48] = Best_Offspring1(self.NP, self.n_ops, self.gen_window, 4, self.max_gen)
+            self.copy_ob[72:81] = Best_Offspring1(self.NP, self.n_ops, self.gen_window, 1, self.max_gen)
+            self.copy_ob[81:90] = Best_Offspring1(self.NP, self.n_ops, self.gen_window, 2, self.max_gen)
+            self.copy_ob[90:99] = Best_Offspring1(self.NP, self.n_ops, self.gen_window, 3, self.max_gen)
+            self.copy_ob[99:108] = Best_Offspring1(self.NP, self.n_ops, self.gen_window, 4, self.max_gen)
             
-            self.copy_ob[48:52] = Best_Offspring2(self.NP, self.n_ops, self.gen_window, 1, self.max_gen)
-            self.copy_ob[52:56] = Best_Offspring2(self.NP, self.n_ops, self.gen_window, 2, self.max_gen)
-            self.copy_ob[56:60] = Best_Offspring2(self.NP, self.n_ops, self.gen_window, 3, self.max_gen)
-            self.copy_ob[60:64] = Best_Offspring2(self.NP, self.n_ops, self.gen_window, 4, self.max_gen)
+            self.copy_ob[108:117] = Best_Offspring2(self.NP, self.n_ops, self.gen_window, 1, self.max_gen)
+            self.copy_ob[117:126] = Best_Offspring2(self.NP, self.n_ops, self.gen_window, 2, self.max_gen)
+            self.copy_ob[126:135] = Best_Offspring2(self.NP, self.n_ops, self.gen_window, 3, self.max_gen)
+            self.copy_ob[135:144] = Best_Offspring2(self.NP, self.n_ops, self.gen_window, 4, self.max_gen)
 
             self.third_dim = []
             self.opu = np.ones(self.NP) * 4
@@ -275,6 +312,12 @@ class DEEnv(gym.Env):
             self.generation = self.generation + 1
             self.population = np.copy(self.X)
             self.copy_F = np.copy(self.F)
+            
+            self.archive[:self.NP] = self.population
+            union = self.archive[~np.isnan(self.archive[:, 0])]
+            if len(union) > self.NP:
+                union = union[np.random.randint(len(union), size = self.NP), :]
+        
             # Best index in current population
             self.best = np.argmin(self.copy_F)
             
@@ -296,7 +339,7 @@ class DEEnv(gym.Env):
         # Preparation for observation to give for next action decision
         self.r = select_samples(self.NP, self.i, 5)
 
-        ob = np.zeros(99); ob[19:83] = np.copy(self.copy_ob)
+        ob = np.zeros(199); ob[19:163] = np.copy(self.copy_ob)
 
         # Parent fintness
         ob[0] = normalise(self.copy_F[self.i], self.best_so_far, self.worst_so_far)
@@ -304,7 +347,7 @@ class DEEnv(gym.Env):
         ob[1] = normalise(self.pop_average, self.best_so_far, self.worst_so_far)
         ob[2] = self.pop_std / self.max_std
         ob[3] = self.budget / self.max_budget
-        ob[4] = self.dim / 50
+        ob[4] = self.dim / 40
         ob[5] = self.stagnation_count / self.max_budget
 
         # Random sample based observations
@@ -314,10 +357,11 @@ class DEEnv(gym.Env):
         ob[18] = distance.euclidean(self.best_so_far_position, self.population[self.i]) / self.max_dist;
         
         # Window based statistics
-        ob[83:87] = Weighted_Offspring2(self.NP, self.n_ops, self.window, 1, self.max_gen)
-        ob[87:91] = Weighted_Offspring2(self.NP, self.n_ops, self.window, 2, self.max_gen)
-        ob[91:95] = Weighted_Offspring2(self.NP, self.n_ops, self.window, 3, self.max_gen)
-        ob[95:99] = Weighted_Offspring2(self.NP, self.n_ops, self.window, 4, self.max_gen)
+        ob[163:172] = Weighted_Offspring2(self.NP, self.n_ops, self.window, 1, self.max_gen)
+        ob[172:181] = Weighted_Offspring2(self.NP, self.n_ops, self.window, 2, self.max_gen)
+        ob[181:190] = Weighted_Offspring2(self.NP, self.n_ops, self.window, 3, self.max_gen)
+        ob[190:199] = Weighted_Offspring2(self.NP, self.n_ops, self.window, 4, self.max_gen)
+        #assert np.all(ob >= 0.0) and np.all(ob <= 1.0)
 
         if self.budget <= 0:
             print("time taken for one episode:", time.time() - self.a)
@@ -336,8 +380,8 @@ class DEEnv(gym.Env):
         self.lbounds = self.fun.lower_bounds
         self.ubounds = self.fun.upper_bounds
         print("Function info: fun= {} with dim = {}" .format(self.fun, self.dim))
-    
-        self.budget = 1e5 * self.dim
+        
+        self.budget = 1e4 * self.dim
         self.max_budget = self.budget
         self.NP = 10 * self.dim
         self.generation = 0
@@ -375,13 +419,17 @@ class DEEnv(gym.Env):
         self.third_dim = []
         self.opu = np.ones(self.NP) * 4
         
+        self.archive = np.full((int(self.max_budget+self.NP), self.dim), np.nan)
+        self.archive[:self.NP] = self.X
+    
+        self.index_poor_cand = []
         # Randomly selects from [0,dim-1] of size NP
         self.fill_points = np.random.randint(self.dim, size = self.NP)
         
         self.pop_average = np.average(self.copy_F)
         self.pop_std = np.std(self.copy_F)
         
-        ob = np.zeros(99); self.copy_ob = np.zeros(64)
+        ob = np.zeros(199); self.copy_ob = np.zeros(144)
         
         self.max_dist = distance.euclidean(self.lbounds, self.ubounds)
         self.max_std = np.std((np.repeat(self.best_so_far, self.NP/2), np.repeat(self.worst_so_far, self.NP/2)))
