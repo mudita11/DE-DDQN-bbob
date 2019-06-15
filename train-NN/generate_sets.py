@@ -3,7 +3,7 @@
 import numpy as np
 
 
-n = 2160
+n = 360#2160
 #m = 24
 m = 360
 training_ratio = 0.75
