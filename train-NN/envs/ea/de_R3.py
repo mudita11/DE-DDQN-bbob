@@ -14,6 +14,8 @@ from optproblems import *
 from optproblems.cec2005 import *
 import cocoex
 import os
+import re
+import shutil
 
 def rand1(population, samples, scale, best, i, union, copy_F, NP): # DE/rand/1
     r0, r1, r2 = samples[:3]
@@ -222,6 +224,7 @@ class DEEnv(gym.Env):
         suite_options = "dimensions: 20"
         self.suite = cocoex.Suite(suite_name, "", suite_options)
         # First "" takes following arguments: year, instances; Second "" takes following arguments: dimensions, dimension_indices, function_indices, instance_indices
+        self.observer = cocoex.Observer(suite_name, "result_folder: data")
         self.fun_index = 0
     
     def step(self, action):
@@ -239,14 +242,14 @@ class DEEnv(gym.Env):
         self.crossovers[self.fill_points[self.i]] = True
         self.u[self.i, :] = np.where(self.crossovers, bprime, self.X[self.i, :])
         self.F1[self.i] = self.fun(self.u[self.i])
-    
+        
         reward = 0
         second_dim = np.full(self.number_metric, np.nan)
         second_dim[0] = self.opu[self.i]
         if self.F1[self.i] < self.copy_F[self.i]:
             # Fitness improvement wrt parent
             second_dim[1] = self.copy_F[self.i] - self.F1[self.i]
-            reward = (self.copy_F[self.i] - self.F1[self.i]) / (self.F1[self.i] - self.optima_for_func_choice[self.fun_index] + 0.001)
+            #reward = (self.copy_F[self.i] - self.F1[self.i]) / (self.F1[self.i] - optima + 0.001)
             # Fitness improvement wrt best parent
             if self.F1[self.i] < self.fmin:
                 second_dim[2] = self.fmin - self.F1[self.i]
@@ -362,7 +365,21 @@ class DEEnv(gym.Env):
         ob[181:190] = Weighted_Offspring2(self.NP, self.n_ops, self.window, 3, self.max_gen)
         ob[190:199] = Weighted_Offspring2(self.NP, self.n_ops, self.window, 4, self.max_gen)
         #assert np.all(ob >= 0.0) and np.all(ob <= 1.0)
-
+    
+        if self.budget == (self.max_budget - (self.NP+1)):
+            for file in os.listdir(self.lookup_file):
+                if file.endswith(".dat"):
+                    print(os.path.join(self.lookup_file,file))
+                    fill = os.path.join(self.lookup_file,file)
+            trace_file = open(fill, "r")
+            line = trace_file.readline()
+            tokens = line.split('|')
+            a = re.findall(r"[-+]?\d*\.\d+|\d+", tokens[2])
+            self.optima = float('e+'.join(a));print(self.optima)
+            trace_file.close()
+            print("Deleting /local/data/data/ms1938/tf_env/batchsize64/DE-DDQN-bbob-copy/train-NN-R3-9/exdata/data/")
+            shutil.rmtree("/local/data/data/ms1938/tf_env/batchsize64/DE-DDQN-bbob-copy/train-NN-R3-9/exdata/data/", ignore_errors = True)
+        reward = (self.copy_F[self.i] - self.F1[self.i]) / (self.F1[self.i] - self.optima + 0.001)
         if self.budget <= 0:
             print("time taken for one episode:", time.time() - self.a)
             print("\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$",self.budget, self.best_so_far,"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n")
@@ -380,6 +397,10 @@ class DEEnv(gym.Env):
         self.lbounds = self.fun.lower_bounds
         self.ubounds = self.fun.upper_bounds
         print("Function info: fun= {} with dim = {}" .format(self.fun, self.dim))
+        self.observer.observe(self.fun)
+        func_file = int(int(self.func_choice[self.fun_index])/15)+1
+        self.lookup_file = "/local/data/data/ms1938/tf_env/batchsize64/DE-DDQN-bbob-copy/train-NN-R3-9/exdata/data/data_f"+str(func_file)
+        print("lookup = ",self.lookup_file)
         
         self.budget = 1e3 * self.dim
         self.max_budget = self.budget
